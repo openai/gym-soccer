@@ -1,4 +1,5 @@
 import os, subprocess, time, signal
+import numpy as np
 import gym
 from gym import error, spaces
 from gym import utils
@@ -26,12 +27,21 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         self.observation_space = spaces.Box(low=-1, high=1,
                                             shape=(self.env.getStateSize()))
         # Action space omits the Tackle/Catch actions, which are useful on defense
-        self.action_space = spaces.Tuple((spaces.Discrete(3),
-                                          spaces.Box(low=0, high=100, shape=1),
-                                          spaces.Box(low=-180, high=180, shape=1),
-                                          spaces.Box(low=-180, high=180, shape=1),
-                                          spaces.Box(low=0, high=100, shape=1),
-                                          spaces.Box(low=-180, high=180, shape=1)))
+        # self.action_space = spaces.Tuple((spaces.Discrete(3),
+        #                                   spaces.Box(low=0, high=100, shape=1),
+        #                                   spaces.Box(low=-180, high=180, shape=1),
+        #                                   spaces.Box(low=-180, high=180, shape=1),
+        #                                   spaces.Box(low=0, high=100, shape=1),
+        #                                   spaces.Box(low=-180, high=180, shape=1)))
+
+        # Modified action space, this modification will combine the parameter for the
+        # same discrete action into a single action spaces
+        self.action_space = spaces.Tuple((
+            spaces.Discrete(3),
+            spaces.Box(low=np.array([0.0,-180.0]), high=np.array([100.0, 180.0])),
+            spaces.Box(low=np.array([-180.0]), high=np.array([180.0])),
+            spaces.Box(low=np.array([0.0, -180.0]), high=np.array([100.0,180.0]))))
+
         self.status = hfo_py.IN_GAME
 
     def __del__(self):
@@ -50,7 +60,7 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         self._start_hfo_server()
 
     def _start_hfo_server(self, frames_per_trial=500,
-                          untouched_time=100, offense_agents=1,
+                          untouched_time=600, offense_agents=1,
                           defense_agents=0, offense_npcs=0,
                           defense_npcs=0, sync_mode=True, port=6000,
                           offense_on_ball=0, fullstate=True, seed=-1,
@@ -113,16 +123,40 @@ class SoccerEnv(gym.Env, utils.EzPickle):
 
     def _take_action(self, action):
         """ Converts the action space into an HFO action. """
-        action_type = ACTION_LOOKUP[action[0]]
+        # print('action about to sent to hfo is {}'.format(action))
+        action_index = action[0]
+        action_type = ACTION_LOOKUP[action_index]
+        parameter = action[1 + action_index]
+        # We have maximum 2 parameter for a discrete action
+        parameter_list = np.array_split(parameter, 2)
+        # print('discrete_action is {}'.format(action_type))
+        # print('parameter is {}'.format(parameter_list))
         if action_type == hfo_py.DASH:
-            self.env.act(action_type, action[1], action[2])
+            self.env.act(action_type, parameter_list[0], parameter_list[1])
         elif action_type == hfo_py.TURN:
-            self.env.act(action_type, action[3])
+            self.env.act(action_type, parameter_list[0])
         elif action_type == hfo_py.KICK:
-            self.env.act(action_type, action[4], action[5])
+            self.env.act(action_type, parameter_list[0], parameter_list[1])
         else:
             print('Unrecognized action %d' % action_type)
             self.env.act(hfo_py.NOOP)
+
+    # def _take_action(self, action):
+    #     """ Converts the action space into an HFO action. """
+    #     action_type = ACTION_LOOKUP[action[0]]
+    #     if action_type == hfo_py.DASH:
+    #         self.env.act(action_type, action[1], action[2])
+    #     elif action_type == hfo_py.TURN:
+    #         self.env.act(action_type, action[3])
+    #     elif action_type == hfo_py.KICK:
+    #         self.env.act(action_type, action[4], action[5])
+    #     else:
+    #         print('Unrecognized action %d' % action_type)
+    #         self.env.act(hfo_py.NOOP)
+
+    def _seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
 
     def _get_reward(self):
         """ Reward is given for scoring a goal. """
