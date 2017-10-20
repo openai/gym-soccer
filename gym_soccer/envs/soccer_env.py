@@ -123,14 +123,11 @@ class SoccerEnv(gym.Env, utils.EzPickle):
 
     def _take_action(self, action):
         """ Converts the action space into an HFO action. """
-        # print('action about to sent to hfo is {}'.format(action))
         action_index = action[0]
         action_type = ACTION_LOOKUP[action_index]
         parameter = action[1 + action_index]
         # We have maximum 2 parameter for a discrete action
         parameter_list = np.array_split(parameter, 2)
-        # print('discrete_action is {}'.format(action_type))
-        # print('parameter is {}'.format(parameter_list))
         if action_type == hfo_py.DASH:
             self.env.act(action_type, parameter_list[0], parameter_list[1])
         elif action_type == hfo_py.TURN:
