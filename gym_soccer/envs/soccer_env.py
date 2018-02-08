@@ -7,7 +7,7 @@ from gym.utils import seeding
 try:
     import hfo_py
 except ImportError as e:
-    raise error.DependencyNotInstalled("{}. (HINT: you can install HFO dependencies with 'pip install gym[soccer].)'".format(e))
+    raise error.DependencyNotInstalled("{}. (HINT: you can install HFO dependencies with 'pip install gym[soccer].')".format(e))
 
 import logging
 logger = logging.getLogger(__name__)
