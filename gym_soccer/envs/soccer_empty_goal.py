@@ -1,5 +1,6 @@
 import logging
 import math
+from gym import error
 from gym_soccer.envs.soccer_env import SoccerEnv
 
 try:
