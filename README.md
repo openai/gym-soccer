@@ -1,3 +1,5 @@
+**Status:** Archive (code is provided as-is, no updates expected)
+
 # gym-soccer
 
 The [Soccer environment](https://github.com/LARG/HFO) is a multiagent
