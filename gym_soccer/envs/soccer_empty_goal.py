@@ -24,6 +24,38 @@ class SoccerEmptyGoalEnv(SoccerEnv):
         self.got_kickable_reward = False
         self.first_step = True
 
+    def _configure_environment(self):
+        """
+        Provides a chance for subclasses to override this method and supply
+        a different server configuration. 
+        """
+        # Set the random seed, need to divide to make the number
+        # smaller, otherwise, the server will raise error
+        seed = self.seed()[0] / 1e13
+        kwargs = dict(
+            # This should be the same length in the __init__.py
+            frames_per_trial=1000,
+            # To make the problem simpler, we do not use this
+            # value. Thus, set to a value is greater than 
+            # frames_per_trial
+            untouched_time=1200,
+            offense_agents=1,
+            defense_agents=0,
+            offense_npcs=0,
+            defense_npcs=0,
+            sync_mode=True,
+            port=6000,
+            offense_on_ball=0,
+            fullstate=True,
+            seed=seed,
+            ball_x_min=0.0,
+            ball_x_max=0.2,
+            verbose=False,
+            log_game=False,
+            log_dir="log"
+        )
+        self._start_hfo_server(**kwargs)
+
     def _get_reward(self):
         """
         Agent is rewarded for minimizing the distance between itself and
@@ -66,7 +98,7 @@ class SoccerEmptyGoalEnv(SoccerEnv):
                 reward += 1.
                 self.got_kickable_reward = True
             # Reward the agent for kicking towards the goal
-            reward += 0.6 * -ball_dist_goal_delta
+            reward += 3.0 * -ball_dist_goal_delta
             # Reward the agent for scoring
             if self.status == hfo_py.GOAL:
                 reward += 5.0

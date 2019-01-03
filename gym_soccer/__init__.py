@@ -6,7 +6,9 @@ logger = logging.getLogger(__name__)
 register(
     id='Soccer-v0',
     entry_point='gym_soccer.envs:SoccerEnv',
-    timestep_limit=1000,
+    # Previously timestep_limit, changed due to upgrade of gym
+    max_episode_steps=1000, 
+    # timestep_limit=1000,
     reward_threshold=1.0,
     nondeterministic = True,
 )
@@ -14,15 +16,19 @@ register(
 register(
     id='SoccerEmptyGoal-v0',
     entry_point='gym_soccer.envs:SoccerEmptyGoalEnv',
-    timestep_limit=1000,
+    # Previously timestep_limit, changed due to upgrade of gym
+    max_episode_steps=1000, 
+    # timestep_limit=1000,
     reward_threshold=10.0,
     nondeterministic = True,
 )
 
 register(
     id='SoccerAgainstKeeper-v0',
-    entry_point='gym.envs:SoccerAgainstKeeperEnv',
-    timestep_limit=1000,
+    entry_point='gym_soccer.envs:SoccerAgainstKeeperEnv',
+    # Previously timestep_limit, changed due to upgrade of gym
+    max_episode_steps=1000, 
+    # timestep_limit=1000,
     reward_threshold=8.0,
     nondeterministic = True,
 )
