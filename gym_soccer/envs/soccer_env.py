@@ -24,14 +24,14 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         self.env = hfo_py.HFOEnvironment()
         self.env.connectToServer(config_dir=hfo_py.get_config_path())
         self.observation_space = spaces.Box(low=-1, high=1,
-                                            shape=(self.env.getStateSize()))
+                                            shape=( (self.env.getStateSize(),) ) )
         # Action space omits the Tackle/Catch actions, which are useful on defense
         self.action_space = spaces.Tuple((spaces.Discrete(3),
-                                          spaces.Box(low=0, high=100, shape=1),
-                                          spaces.Box(low=-180, high=180, shape=1),
-                                          spaces.Box(low=-180, high=180, shape=1),
-                                          spaces.Box(low=0, high=100, shape=1),
-                                          spaces.Box(low=-180, high=180, shape=1)))
+                                          spaces.Box(low=0, high=100, shape=(1,)),
+                                          spaces.Box(low=-180, high=180, shape=(1,)),
+                                          spaces.Box(low=-180, high=180, shape=(1,)),
+                                          spaces.Box(low=0, high=100, shape=(1,)),
+                                          spaces.Box(low=-180, high=180, shape=(1,))))
         self.status = hfo_py.IN_GAME
 
     def __del__(self):
@@ -103,7 +103,7 @@ class SoccerEnv(gym.Env, utils.EzPickle):
               " --connect --port %d" % (self.server_port)
         self.viewer = subprocess.Popen(cmd.split(' '), shell=False)
 
-    def _step(self, action):
+    def step(self, action):
         self._take_action(action)
         self.status = self.env.step()
         reward = self._get_reward()
@@ -131,7 +131,7 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         else:
             return 0
 
-    def _reset(self):
+    def reset(self):
         """ Repeats NO-OP action until a new episode begins. """
         while self.status == hfo_py.IN_GAME:
             self.env.act(hfo_py.NOOP)
@@ -141,7 +141,7 @@ class SoccerEnv(gym.Env, utils.EzPickle):
             self.status = self.env.step()
         return self.env.getState()
 
-    def _render(self, mode='human', close=False):
+    def render(self, mode='human', close=False):
         """ Viewer only supports human mode currently. """
         if close:
             if self.viewer is not None:
