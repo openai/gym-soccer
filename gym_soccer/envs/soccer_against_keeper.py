@@ -13,10 +13,11 @@ class SoccerAgainstKeeperEnv(SoccerEmptyGoalEnv):
     given for scoring a goal.
 
     """
-    def __init__(self):
-        super(SoccerAgainstKeeperEnv, self).__init__()
+    def __init__(self, replay_path='./game_log'):
+        super(SoccerAgainstKeeperEnv, self).__init__(replay_path)
 
-    def _configure_environment(self):
+    def configure_environment(self, replay_path='./game_log'):
         super(SoccerAgainstKeeperEnv, self)._start_hfo_server(defense_npcs=1,
                                                               offense_on_ball=1,
-                                                              ball_x_min=0.6)
+                                                              ball_x_min=0.6,
+                                                              log_dir=replay_path)

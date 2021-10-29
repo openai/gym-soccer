@@ -48,7 +48,7 @@ class SoccerEnv(gym.Env, utils.EzPickle):
                           defense_npcs=0, sync_mode=True, port=6000,
                           offense_on_ball=0, fullstate=True, seed=-1,
                           ball_x_min=0.0, ball_x_max=0.2,
-                          verbose=False, log_game=False,
+                          verbose=False,
                           log_dir="./game_log"):
         """
         Starts the Half-Field-Offense server.
