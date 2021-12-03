@@ -15,13 +15,13 @@ logger = logging.getLogger(__name__)
 class SoccerEnv(gym.Env, utils.EzPickle):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, replay_path='./game_log'):
+    def __init__(self, replay_path='./game_log', port=6000):
         self.viewer = None
         self.server_process = None
-        self.server_port = None
+        self.server_port = port
         self.replay_server = None
         self.hfo_path = hfo_py.get_hfo_path()
-        self.configure_environment(replay_path)
+        self.configure_environment(replay_path=replay_path, port=port)
         self.env = hfo_py.HFOEnvironment()
         self.env.connectToServer(config_dir=hfo_py.get_config_path())
         self.observation_space = spaces.Box(low=-1, high=1,
@@ -68,7 +68,6 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         log_game: Enable game logging. Logs can be used for replay + visualization.
         log_dir: Directory to place game logs (*.rcg).
         """
-        self.server_port = port
         cmd = self.hfo_path + \
               " --headless --frames-per-trial %i --untouched-time %i --offense-agents %i"\
               " --defense-agents %i --offense-npcs %i --defense-npcs %i"\
@@ -119,13 +118,13 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         cmd = hfo_py.get_replay_path() + " -l " + log_path
         self.replay_server = subprocess.Popen(cmd.split(' '), shell=False)
 
-    def configure_environment(self, replay_path='./game_log'):
+    def configure_environment(self, replay_path='./game_log', port=6000):
         """
         Provides a chance for subclasses to override this method and supply
         a different server configuration. By default, we initialize one
         offense agent against no defenders.
         """
-        self._start_hfo_server(log_dir=replay_path)
+        self._start_hfo_server(log_dir=replay_path, port=port)
 
     def step(self, action):
         self._take_action(action)

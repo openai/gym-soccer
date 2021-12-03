@@ -16,8 +16,8 @@ class SoccerEmptyGoalEnv(SoccerEnv):
     the ball, kicks the ball towards the goal, and scores a goal.
 
     """
-    def __init__(self, replay_path="./game_log"):
-        super(SoccerEmptyGoalEnv, self).__init__(replay_path)
+    def __init__(self, replay_path="./game_log", port=6000):
+        super(SoccerEmptyGoalEnv, self).__init__(replay_path, port)
         self.old_ball_prox = 0
         self.old_kickable = 0
         self.old_ball_dist_goal = 0
