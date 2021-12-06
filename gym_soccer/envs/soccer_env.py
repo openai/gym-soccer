@@ -23,7 +23,7 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         self.hfo_path = hfo_py.get_hfo_path()
         self.configure_environment(replay_path=replay_path, port=port)
         self.env = hfo_py.HFOEnvironment()
-        self.env.connectToServer(config_dir=hfo_py.get_config_path())
+        self.env.connectToServer(config_dir=hfo_py.get_config_path(), server_port=port)
         self.observation_space = spaces.Box(low=-1, high=1,
                                             shape=( (self.env.getStateSize(),) ) )
         # Action space omits the Tackle/Catch actions, which are useful on defense
