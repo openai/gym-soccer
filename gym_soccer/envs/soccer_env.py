@@ -15,23 +15,24 @@ logger = logging.getLogger(__name__)
 class SoccerEnv(gym.Env, utils.EzPickle):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self):
+    def __init__(self, replay_path='./game_log', port=6000):
         self.viewer = None
         self.server_process = None
-        self.server_port = None
+        self.server_port = port
+        self.replay_server = None
         self.hfo_path = hfo_py.get_hfo_path()
-        self._configure_environment()
+        self.configure_environment(replay_path=replay_path, port=port)
         self.env = hfo_py.HFOEnvironment()
-        self.env.connectToServer(config_dir=hfo_py.get_config_path())
+        self.env.connectToServer(config_dir=hfo_py.get_config_path(), server_port=port)
         self.observation_space = spaces.Box(low=-1, high=1,
-                                            shape=(self.env.getStateSize()))
+                                            shape=( (self.env.getStateSize(),) ) )
         # Action space omits the Tackle/Catch actions, which are useful on defense
         self.action_space = spaces.Tuple((spaces.Discrete(3),
-                                          spaces.Box(low=0, high=100, shape=1),
-                                          spaces.Box(low=-180, high=180, shape=1),
-                                          spaces.Box(low=-180, high=180, shape=1),
-                                          spaces.Box(low=0, high=100, shape=1),
-                                          spaces.Box(low=-180, high=180, shape=1)))
+                                          spaces.Box(low=0, high=100, shape=(1,)),
+                                          spaces.Box(low=-180, high=180, shape=(1,)),
+                                          spaces.Box(low=-180, high=180, shape=(1,)),
+                                          spaces.Box(low=0, high=100, shape=(1,)),
+                                          spaces.Box(low=-180, high=180, shape=(1,))))
         self.status = hfo_py.IN_GAME
 
     def __del__(self):
@@ -41,22 +42,14 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         if self.viewer is not None:
             os.kill(self.viewer.pid, signal.SIGKILL)
 
-    def _configure_environment(self):
-        """
-        Provides a chance for subclasses to override this method and supply
-        a different server configuration. By default, we initialize one
-        offense agent against no defenders.
-        """
-        self._start_hfo_server()
-
     def _start_hfo_server(self, frames_per_trial=500,
                           untouched_time=100, offense_agents=1,
                           defense_agents=0, offense_npcs=0,
                           defense_npcs=0, sync_mode=True, port=6000,
                           offense_on_ball=0, fullstate=True, seed=-1,
                           ball_x_min=0.0, ball_x_max=0.2,
-                          verbose=False, log_game=False,
-                          log_dir="log"):
+                          verbose=False,
+                          log_dir="./game_log"):
         """
         Starts the Half-Field-Offense server.
         frames_per_trial: Episodes end after this many steps.
@@ -75,7 +68,6 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         log_game: Enable game logging. Logs can be used for replay + visualization.
         log_dir: Directory to place game logs (*.rcg).
         """
-        self.server_port = port
         cmd = self.hfo_path + \
               " --headless --frames-per-trial %i --untouched-time %i --offense-agents %i"\
               " --defense-agents %i --offense-npcs %i --defense-npcs %i"\
@@ -88,7 +80,6 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         if not sync_mode: cmd += " --no-sync"
         if fullstate:     cmd += " --fullstate"
         if verbose:       cmd += " --verbose"
-        if not log_game:  cmd += " --no-logging"
         print('Starting server with command: %s' % cmd)
         self.server_process = subprocess.Popen(cmd.split(' '), shell=False)
         time.sleep(10) # Wait for server to startup before connecting a player
@@ -102,14 +93,6 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         cmd = hfo_py.get_viewer_path() +\
               " --connect --port %d" % (self.server_port)
         self.viewer = subprocess.Popen(cmd.split(' '), shell=False)
-
-    def _step(self, action):
-        self._take_action(action)
-        self.status = self.env.step()
-        reward = self._get_reward()
-        ob = self.env.getState()
-        episode_over = self.status != hfo_py.IN_GAME
-        return ob, reward, episode_over, {}
 
     def _take_action(self, action):
         """ Converts the action space into an HFO action. """
@@ -131,7 +114,27 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         else:
             return 0
 
-    def _reset(self):
+    def replay_log(self, log_path):
+        cmd = hfo_py.get_replay_path() + " -l " + log_path
+        self.replay_server = subprocess.Popen(cmd.split(' '), shell=False)
+
+    def configure_environment(self, replay_path='./game_log', port=6000):
+        """
+        Provides a chance for subclasses to override this method and supply
+        a different server configuration. By default, we initialize one
+        offense agent against no defenders.
+        """
+        self._start_hfo_server(log_dir=replay_path, port=port)
+
+    def step(self, action):
+        self._take_action(action)
+        self.status = self.env.step()
+        reward = self._get_reward()
+        ob = self.env.getState()
+        episode_over = self.status != hfo_py.IN_GAME
+        return ob, reward, episode_over, {}
+
+    def reset(self):
         """ Repeats NO-OP action until a new episode begins. """
         while self.status == hfo_py.IN_GAME:
             self.env.act(hfo_py.NOOP)
@@ -141,7 +144,7 @@ class SoccerEnv(gym.Env, utils.EzPickle):
             self.status = self.env.step()
         return self.env.getState()
 
-    def _render(self, mode='human', close=False):
+    def render(self, mode='human', close=False):
         """ Viewer only supports human mode currently. """
         if close:
             if self.viewer is not None:
@@ -149,6 +152,8 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         else:
             if self.viewer is None:
                 self._start_viewer()
+    
+
 
 ACTION_LOOKUP = {
     0 : hfo_py.DASH,
